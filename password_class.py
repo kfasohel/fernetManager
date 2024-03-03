@@ -16,9 +16,9 @@ class PasswordClass:
         self._salt = os.urandom(16)
 
         # Connect or create a new database
-        self._dbname = "users.db"
-        if not self.database_exists(self._dbname):
-            self.create_tables()
+        self._dbname = "fernets.db"
+        if not self.database_exists(self):
+            self.create_tables(self)
         self._conn = sqlite3.connect(self._dbname)
         self._cur = self._conn.cursor()
 
@@ -31,9 +31,9 @@ class PasswordClass:
         return self._salt
 
     @staticmethod
-    def database_exists(self: object, dbname: str) -> bool:
+    def database_exists(self) -> bool:
         """
-        Check if a database file exists in the same folder as the Python script.
+        Check if a database file exists in the same folder as the Python file.
         Parameters:
         - filename: The name of the database file to check.
         Returns:
@@ -41,12 +41,33 @@ class PasswordClass:
         """
         current_dir = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the Python script
         print(current_dir)  # For testing
-        db_path = os.path.join(current_dir, dbname)  # Construct the full path to the database file
+        db_path = os.path.join(current_dir, self._dbname)  # Construct the full path to the database file
         return os.path.exists(db_path)  # Check if the file exists
 
+    @staticmethod
     def create_tables(self):
         self._conn = sqlite3.connect(self._dbname)
         self._cur = self._conn.cursor()
+
+        # Create users table
+        self._cur.execute("""
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                username TEXT,
+                hash TEXT,
+                salt TEXT
+            )
+        """)
+
+        self._cur.execute("""
+            CREATE TABLE passwords (
+                pid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                uid INTEGER NOT NULL,
+                site TEXT,
+                encrypted_pass BLOB,
+                FOREIGN KEY(uid) REFERENCES users (id)
+            )
+        """)
         # TODO : Create two tables
         self.close_conn()
 
@@ -63,6 +84,6 @@ class PasswordClass:
     def create_key(self, u_password):
         pass
 
-# pc = PasswordClass()
-# print(pc.db)
-# pc.close_conn()
+pc = PasswordClass()
+print(pc.dbname)
+pc.close_conn()

@@ -1,4 +1,3 @@
-import getpass
 import hashlib
 import sqlite3
 import base64
@@ -9,12 +8,12 @@ import re
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-
+from getpass import getpass
 
 class PasswordClass:
 
     def __init__(self) -> None:
-        self._salt = os.urandom(16)  # To be changed according to logged-in user
+        self._salt = os.urandom(16) # To be changed according to logged-in user
         self._key = None # To be created according to logged-in user
         self._userid = None # To be set according to logged-in user
         self._logged_in = False
@@ -65,8 +64,8 @@ class PasswordClass:
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 username TEXT,
-                hash TEXT,
-                salt BLOB
+                salt BLOB,
+                hash TEXT
             )
         """)
 
@@ -77,7 +76,7 @@ class PasswordClass:
                 uid INTEGER NOT NULL,
                 site_name TEXT,
                 site_url TEXT,
-                sit_pass_encrypted BLOB,
+                site_pass_encrypted BLOB,
                 FOREIGN KEY(uid) REFERENCES users (id)
             )
         """)
@@ -96,6 +95,7 @@ class PasswordClass:
 
     # Add user ? the user database should be handled by app.py
     def add_user(self, u_name, p_hash):
+        u_name = u_name.capitalize()
         query = "SELECT username FROM users WHERE username = ?"
         data_to_check = [u_name,]
         if not self._cur.execute(query, data_to_check).fetchone():
@@ -109,16 +109,22 @@ class PasswordClass:
         return False
 
     def set_user(self, u_name):
+        u_name = u_name.capitalize()
         query = "SELECT id FROM users WHERE username = ?"
-        data_to_check = [u_name,]
+        data_to_check = [u_name.capitalize(),]
         user_id_from_db = self._cur.execute(query, data_to_check).fetchone()
         if user_id_from_db:
             self._userid = user_id_from_db[0]
             query = "SELECT salt FROM users WHERE id = ?"
             data_to_insert = [self._userid,]
             self._salt = self._cur.execute(query, data_to_insert).fetchone()[0]
-            print(self._salt) # For testing
-            passwd = getpass.getpass("Enter you encryption password: ")  #This password can be different and not stored.
+            print(f"Welcome {u_name}.")
+            while True:
+                passwd = getpass("Enter your encryption password: ")  #This password can be different and not stored.
+                if passwd == getpass("Re-type your encryption password: "):
+                    break
+                print("Passwords didn't match!")
+            # TODO: Create a recovery hash and print it for user's convenience
             self.key = passwd # To call the setter method
             self._logged_in = True # Will be checked while encrypting and decrypting
             print("User set")
@@ -128,18 +134,40 @@ class PasswordClass:
 
     # Add entry
     def add_entry(self, site_name, site_pass, site_url):
-        site_pass_encrypted = self._key(site_pass)
+        if self._logged_in == True:
+            site_pass_encrypted = self._key.encrypt(site_pass.encode())
+            query = "INSERT INTO passwords (uid, site_name, site_url, site_pass_encrypted) VALUES (?, ?, ?, ?)"
+            data_to_insert = [self.userid, site_name, site_url, site_pass_encrypted ]
+            self._cur.execute(query, data_to_insert)
+            self._conn.commit()
+            return True
+        print("User not set!")
+        return False
 
 
 
 
-
-username = input("Username: ")
-password = getpass.getpass("Password: ")
-pass_hash = hashlib.sha256(password.encode()).hexdigest()
 
 
 pc = PasswordClass()
-pc.add_user(username, pass_hash)
-pc.set_user(username)
+username = input("Username: ").strip()
+password = getpass("Password: ")
+pass_hash = hashlib.sha256(password.encode()).hexdigest()
+
+# pc.add_user(username, pass_hash)
+if pc.set_user(username):
+    # getting entry
+    site_name = input("Enter name of the Site/Website: ").strip()
+    site_url = input("Enter the URL: ").strip()
+    while True:
+        site_pass = getpass("Enter the site password: ")
+        if site_pass == getpass("Retype your password: "):
+              break
+        print("Passwords didn't match")
+    if pc.add_entry(site_name, site_pass, site_url):
+         print("Entry Added")
+else:
+    print("This user is not registered!")
+
+# Close the database connection
 pc.close_conn()

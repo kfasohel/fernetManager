@@ -126,7 +126,6 @@ class PasswordClass:
             query = "SELECT salt FROM users WHERE id = ?"
             data_to_insert = [self._userid, ]
             self._salt = self._cur.execute(query, data_to_insert).fetchone()[0]
-            print(f"Welcome {u_name}.")
             while True:
                 passwd = getpass("Enter your encryption password: ")  # This password can be different and not stored.
                 if passwd == getpass("Re-type your encryption password: "):
@@ -135,11 +134,12 @@ class PasswordClass:
             # TODO: Create a recovery hash and print it for user's convenience
             self.key = passwd  # To call the setter method
             self._logged_in = True  # Will be checked while encrypting and decrypting
+            print(f"\nWelcome {u_name}.")
             return True
         return False
 
     # Add entry
-    def add_entry(self, site_name, site_pass, site_url):
+    def add_entry(self, site_name, site_url, site_pass):
         site_name = site_name.capitalize()
         if self._logged_in:
             site_pass_encrypted = self._key.encrypt(site_pass.encode())
@@ -148,7 +148,6 @@ class PasswordClass:
             self._cur.execute(query, data_to_insert)
             self._conn.commit()
             return True
-        print("User not set!")
         return False
 
     def find_entry(self, site_title):
@@ -163,7 +162,7 @@ class PasswordClass:
                     s_pass = self.key.decrypt(output[1]).decode()
                     print(s_url, s_pass)
                  except Exception as e:
-                    print("Something went wrong")
+                    print("Password error!")
             else:
                 print("Site not found")
 
@@ -195,7 +194,7 @@ class PasswordClass:
 #         if site_pass == getpass("Retype your password: "):
 #             break
 #         print("Passwords didn't match")
-#     if pc.add_entry(site_name, site_pass, site_url):
+#     if pc.add_entry(site_name, site_url, site_pass):
 #         print("Entry Added")
 
     # Finding entry

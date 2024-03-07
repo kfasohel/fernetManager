@@ -4,6 +4,7 @@ import time
 from password_class import PasswordClass
 from rich import print as printc
 from rich.console import Console
+from rich.table import Table
 from getpass import getpass
 
 # Global variables
@@ -20,12 +21,15 @@ def main():
 
 # Add register function
 def register():
-    username = input("Username: ").strip()
     while True:
-        password = getpass("Password: ")
-        if password == getpass("Retype password: ") and password != "":
-            break
-        print("Passwords didn't match")
+        username = input("Username: ").strip().capitalize()
+        if username:
+            password = getpass("Password: ")
+            if password == getpass("Retype password: ") and password != "":
+                break
+            print("Passwords didn't match")
+        else:
+            printc("[red]Username can not be empty")
     pass_hash = hashlib.sha256(password.encode()).hexdigest()
     if pc.add_user(username, pass_hash):
         return True
@@ -34,12 +38,15 @@ def register():
 
 # Add login function
 def login():
-    username = input("Username: ").strip()
     while True:
-        password = getpass("Password: ")
-        if password == getpass("Retype password: ") and password != "":
-            break
-        print("Passwords didn't match")
+        username = input("Username: ").strip().capitalize()
+        if username:
+            password = getpass("Password: ")
+            if password == getpass("Retype password: ") and password != "":
+                break
+            print("Passwords didn't match")
+        else:
+            printc("[red]Username can not be empty")
     pass_hash = hashlib.sha256(password.encode()).hexdigest()
     checked = pc.check_user(username, pass_hash)
     if checked:
@@ -95,10 +102,7 @@ def choice_group_two():
                     printc("[red]Something went wrong!")
 
             case '2':
-                site_to_find = console.input("[cyan]Enter site name: ")
-                if site_to_find:
-                    pc.find_entry(site_to_find)
-                time.sleep(2)
+                find_data()
             case 'q':
                 pc.close_conn()
                 break
@@ -123,6 +127,39 @@ def get_data():
     site_username = input("Enter username for the site: ") or "<empty>"
 
     return [site_name, site_url, site_username, site_pass]
+
+
+# Data to be retrieved using site name as search-term for the logged in user
+def find_data():
+    site_to_find = console.input("[cyan]Enter site name: ")
+    if site_to_find:
+        site_data = pc.find_entry(site_to_find)
+        if site_data:
+            display_data(site_data)
+            time.sleep(2)
+    else:
+        printc("[red]Site name can not be empty")
+
+
+def display_data(data):
+    table = Table(show_header=True, header_style="bold cyan")
+    # table.add_column("Site-name", width=12)
+    # table.add_column("URL", width=50)
+    # table.add_column("Username", width=20)
+    # table.add_column("Password", width=15, style="dim")
+
+    table.add_column("Site-name")
+    table.add_column("URL")
+    table.add_column("Username")
+    table.add_column("Password", style="dim")
+
+    for item in data:
+        table.add_row(item[0], item[1], item[2], item[3])
+
+    console.print(table)
+    # print(data)
+    # print(type(data))
+    # print(type(data[0]))
 
 
 if __name__ == "__main__":

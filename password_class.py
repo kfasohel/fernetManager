@@ -9,6 +9,7 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from getpass import getpass
+from rich import print as printc
 
 
 class PasswordClass:
@@ -109,7 +110,7 @@ class PasswordClass:
 
     # Check if user exists in the database
     def check_user(self, u_name, p_hash):
-        supplied_data = [u_name,]
+        supplied_data = [u_name, ]
         u_name_found = self._cur.execute("SELECT username FROM users WHERE username = ?", supplied_data).fetchone()
         if u_name_found:
             p_hash_match = self._cur.execute("SELECT hash FROM users WHERE username = ?", supplied_data).fetchone()
@@ -127,12 +128,15 @@ class PasswordClass:
             query = "SELECT salt FROM users WHERE id = ?"
             data_to_insert = [self._userid, ]
             self._salt = self._cur.execute(query, data_to_insert).fetchone()[0]
+            printc("[yellow]Now you have to enter you encryption password which can be same as login password or "
+                   "different\n[red]But you must preserve it, otherwise there is no way to recover your data stored "
+                   "here")
             while True:
                 passwd = getpass("Enter your encryption password: ")  # This password can be different and not stored.
                 if passwd == getpass("Re-type your encryption password: "):
                     break
                 print("Passwords didn't match!")
-            # TODO: Create a recovery hash and print it for user's convenience
+
             self.key = passwd  # To call the setter method
             self._logged_in = True  # Will be checked while encrypting and decrypting
             print(f"\nWelcome {u_name}.")
@@ -154,22 +158,25 @@ class PasswordClass:
     def find_entry(self, site_title):
         site_title = site_title.capitalize()
         if self._logged_in:
-            query = "SELECT site_url, site_username, site_pass_encrypted FROM passwords WHERE uid = ? AND site_name = ?"
+            query = "SELECT site_name, site_url, site_username, site_pass_encrypted FROM passwords WHERE uid = ? AND site_name = ?"
             data_to_put = [self.userid, site_title]
-            output = self._cur.execute(query, data_to_put).fetchone()
+            output = self._cur.execute(query, data_to_put).fetchall()
             if output:
-                 try:
-                    s_url = output[0]
-                    s_username = output[1]
-                    s_pass = self.key.decrypt(output[2]).decode()
-                    print(s_url, s_username, s_pass)
-                 except Exception as e:
+                try:
+                    output_processed = []
+                    for item in output:
+                        item = list(item)
+                        item[3] = self.key.decrypt(item[3]).decode()
+                        output_processed.append(item)
+                    return output_processed
+
+                except Exception as e:
                     print("Password error!")
+                    return
+                # return output
             else:
                 print("Site not found")
-
-
-
+                return
 
 # pc = PasswordClass()
 # username = input("Username: ").strip()
@@ -199,7 +206,7 @@ class PasswordClass:
 #     if pc.add_entry(site_name, site_url, site_pass):
 #         print("Entry Added")
 
-    # Finding entry
+# Finding entry
 #     site_name = input("Enter the Site/Website name: ")
 #     if site_name:
 #         pc.find_entry(site_name)

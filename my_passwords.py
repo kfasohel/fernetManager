@@ -88,8 +88,8 @@ def choice_group_two():
         # Sort choice
         match choice:
             case '1':
-                site_name, site_url, site_pass = get_data()
-                if pc.add_entry(site_name=site_name, site_url=site_url, site_pass=site_pass):
+                site_name, site_url, site_username, site_pass = get_data()
+                if pc.add_entry(site_name=site_name, site_url=site_url, site_username=site_username, site_pass=site_pass):
                     printc("[cyan]Data entry successful.")
                 else:
                     printc("[red]Something went wrong!")
@@ -109,14 +109,20 @@ def choice_group_two():
 
 # Get necessary data from the user and return it
 def get_data():
-    site_name = input("Enter name of the Site/Website: ").strip()
-    site_url = input("Enter the URL: ").strip()
     while True:
-        site_pass = getpass("Enter the site password: ")
-        if site_pass == getpass("Retype your password: ") and site_pass != "":
-            break
-        print("Passwords didn't match or empty")
-    return [site_name, site_url, site_pass]
+        site_name = input("Enter name of the Site/Website: ").strip()
+        if site_name:
+            site_pass = getpass("Enter the site password: ")
+            if site_name and site_pass == getpass("Retype your password: ") and site_pass != "":
+                break
+            printc("[red]Passwords didn't match or empty")
+        printc("[red]Site/Website name can not be empty!")
+
+    # Get optional data. Assign <empty> in case of no user input
+    site_url = input("Enter the URL: ").strip() or "<empty>"
+    site_username = input("Enter username for the site: ") or "<empty>"
+
+    return [site_name, site_url, site_username, site_pass]
 
 
 if __name__ == "__main__":

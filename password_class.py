@@ -76,6 +76,7 @@ class PasswordClass:
                 uid INTEGER NOT NULL,
                 site_name TEXT,
                 site_url TEXT,
+                site_username TEXT,
                 site_pass_encrypted BLOB,
                 FOREIGN KEY(uid) REFERENCES users (id)
             )
@@ -139,12 +140,12 @@ class PasswordClass:
         return False
 
     # Add entry
-    def add_entry(self, site_name, site_url, site_pass):
+    def add_entry(self, site_name, site_url, site_username, site_pass):
         site_name = site_name.capitalize()
         if self._logged_in:
             site_pass_encrypted = self._key.encrypt(site_pass.encode())
-            query = "INSERT INTO passwords (uid, site_name, site_url, site_pass_encrypted) VALUES (?, ?, ?, ?)"
-            data_to_insert = [self.userid, site_name, site_url, site_pass_encrypted]
+            query = "INSERT INTO passwords (uid, site_name, site_url, site_username, site_pass_encrypted) VALUES (?, ?, ?, ?, ?)"
+            data_to_insert = [self.userid, site_name, site_url, site_username, site_pass_encrypted]
             self._cur.execute(query, data_to_insert)
             self._conn.commit()
             return True
@@ -153,14 +154,15 @@ class PasswordClass:
     def find_entry(self, site_title):
         site_title = site_title.capitalize()
         if self._logged_in:
-            query = "SELECT site_url, site_pass_encrypted FROM passwords WHERE uid = ? AND site_name = ?"
+            query = "SELECT site_url, site_username, site_pass_encrypted FROM passwords WHERE uid = ? AND site_name = ?"
             data_to_put = [self.userid, site_title]
             output = self._cur.execute(query, data_to_put).fetchone()
             if output:
                  try:
                     s_url = output[0]
-                    s_pass = self.key.decrypt(output[1]).decode()
-                    print(s_url, s_pass)
+                    s_username = output[1]
+                    s_pass = self.key.decrypt(output[2]).decode()
+                    print(s_url, s_username, s_pass)
                  except Exception as e:
                     print("Password error!")
             else:

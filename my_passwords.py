@@ -89,7 +89,7 @@ def choice_group_one():
 def choice_group_two():
     while True:
         printc("[yellow]What do you want to do: ")
-        printc("\t[green](1) Add entry\n\t[blue](2) Find entry\n\t[red](q) Quit")
+        printc("\t[green](1) Add entry\n\t[blue](2) Find entry\n\t[cyan](3) Show All\n\t[magenta](4) Delete entry\n\t[dim red](d) Delete All\n\t[red](q) Quit")
         choice = console.input("[yellow]Enter choice: ")
 
         # Sort choice
@@ -103,6 +103,12 @@ def choice_group_two():
 
             case '2':
                 find_data()
+            case '3':
+                show_all()
+            case '4':
+                delete_data()
+            case 'd':
+                delete_all()
             case 'q':
                 pc.close_conn()
                 break
@@ -120,7 +126,7 @@ def get_data():
             if site_name and site_pass == getpass("Retype your password: ") and site_pass != "":
                 break
             printc("[red]Passwords didn't match or empty")
-        printc("[red]Site/Website name can not be empty!")
+        printc("[bold red]Site/Website name can not be empty!")
 
     # Get optional data. Assign <empty> in case of no user input
     site_url = input("Enter the URL: ").strip() or "<empty>"
@@ -138,7 +144,16 @@ def find_data():
             display_data(site_data)
             time.sleep(2)
     else:
-        printc("[red]Site name can not be empty")
+        printc("[bold red]Site name can not be empty")
+
+# Show all data of the logged-in user
+def show_all():
+    site_data = pc.find_entry()
+    if site_data:
+        display_data(site_data)
+        time.sleep(2)
+    else:
+        printc("[red]Something went wrong! You may try again")
 
 
 def display_data(data):
@@ -160,6 +175,31 @@ def display_data(data):
     # print(data)
     # print(type(data))
     # print(type(data[0]))
+
+
+def delete_data():
+    site_to_delete = console.input("[red]Enter site name: ")
+    if site_to_delete:
+        site_data = pc.find_entry(site_to_delete)
+        if site_data:
+            if pc.delete_entry(site_to_delete):
+                time.sleep(1)
+                printc(f"[bold white] {site_to_delete} deleted successfully from your records. ")
+    else:
+        printc("[bold red]Site name can not be empty")
+
+
+def delete_all():
+    ans = input("This will delete all your records.\nType 'Y' or 'N'. Are you sure? ").upper()
+
+    if ans == 'Y' and 'Y' == console.input("[bold red]Are you sure? 'Y' or 'N': ").upper():
+        if pc.delete_entry():
+            time.sleep(1)
+            printc("[red]All data deleted.")
+        else:
+            print("Data could not be deleted. You may try again.")
+    else:
+        printc("[bold green] Your data is safe. 💚")
 
 
 if __name__ == "__main__":

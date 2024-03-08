@@ -83,7 +83,7 @@ class PasswordClass:
             )
         """)
         self._conn.commit()
-        print("Database ready")
+        printc("[green][+][/green] Database ready")
 
     @property
     def dbname(self):
@@ -93,7 +93,7 @@ class PasswordClass:
     def close_conn(self):
         self._cur.close()
         self._conn.close()
-        print("Database connection termination successful")
+        printc("[green][+][/green] Database connection termination successful")
 
     # Add user ? the user database should be handled by app.py
     def add_user(self, u_name, p_hash):
@@ -155,11 +155,15 @@ class PasswordClass:
             return True
         return False
 
-    def find_entry(self, site_title):
-        site_title = site_title.capitalize()
+    def find_entry(self, site_title = None):
         if self._logged_in:
-            query = "SELECT site_name, site_url, site_username, site_pass_encrypted FROM passwords WHERE uid = ? AND site_name = ?"
-            data_to_put = [self.userid, site_title]
+            if not site_title:
+                query = "SELECT site_name, site_url, site_username, site_pass_encrypted FROM passwords WHERE uid = ?"
+                data_to_put = [self.userid,]
+            else:
+                site_title = site_title.capitalize()
+                query = "SELECT site_name, site_url, site_username, site_pass_encrypted FROM passwords WHERE uid = ? AND site_name = ?"
+                data_to_put = [self.userid, site_title]
             output = self._cur.execute(query, data_to_put).fetchall()
             if output:
                 try:
@@ -177,6 +181,22 @@ class PasswordClass:
             else:
                 print("Site not found")
                 return
+
+
+    def delete_entry(self, site_title = None):
+        if self._logged_in:
+            if not site_title:
+                query = "DELETE FROM passwords WHERE uid = ?"
+                data_to_put = [self.userid,]
+            else:
+                site_title = site_title.capitalize()
+                query = "DELETE FROM passwords WHERE uid = ? AND site_name = ?"
+                data_to_put = [self.userid, site_title]
+            self._cur.execute(query, data_to_put)
+            self._conn.commit()
+            return True
+        return False
+
 
 # pc = PasswordClass()
 # username = input("Username: ").strip()

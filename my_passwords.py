@@ -158,10 +158,6 @@ def show_all():
 
 def display_data(data):
     table = Table(show_header=True, header_style="bold cyan")
-    # table.add_column("Site-name", width=12)
-    # table.add_column("URL", width=50)
-    # table.add_column("Username", width=20)
-    # table.add_column("Password", width=15, style="dim")
 
     table.add_column("Site-name")
     table.add_column("URL")
@@ -172,9 +168,6 @@ def display_data(data):
         table.add_row(item[0], item[1], item[2], item[3])
 
     console.print(table)
-    # print(data)
-    # print(type(data))
-    # print(type(data[0]))
 
 
 def delete_data():

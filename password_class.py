@@ -128,9 +128,8 @@ class PasswordClass:
             query = "SELECT salt FROM users WHERE id = ?"
             data_to_insert = [self._userid, ]
             self._salt = self._cur.execute(query, data_to_insert).fetchone()[0]
-            printc("[yellow]Now you have to enter you encryption password which can be same as login password or "
-                   "different\n[red]But you must preserve it, otherwise there is no way to recover your data stored "
-                   "here")
+            printc("[yellow]Now you have to enter your encryption password which can be same as login password or "
+                   "different\n[red]But you must preserve it, otherwise there is no way to recover your data.")
             while True:
                 passwd = getpass("Enter your encryption password: ")  # This password can be different and not stored.
                 if passwd == getpass("Re-type your encryption password: "):

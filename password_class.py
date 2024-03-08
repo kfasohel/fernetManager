@@ -2,6 +2,7 @@ import hashlib
 import sqlite3
 import base64
 import os
+import time
 import sys
 import re
 
@@ -128,15 +129,15 @@ class PasswordClass:
             query = "SELECT salt FROM users WHERE id = ?"
             data_to_insert = [self._userid, ]
             self._salt = self._cur.execute(query, data_to_insert).fetchone()[0]
-            printc("[yellow]Now you have to enter your encryption password which can be same as login password or "
-                   "different\n[red]But you must preserve it, otherwise there is no way to recover your data.")
-            while True:
-                passwd = getpass("Enter your encryption password: ")  # This password can be different and not stored.
-                if passwd == getpass("Re-type your encryption password: "):
-                    break
-                print("Passwords didn't match!")
-
-            self.key = passwd  # To call the setter method
+            # printc("[yellow]Now you have to enter your encryption password which can be same as login password or "
+            #        "different\n[red]But you must preserve it, otherwise there is no way to recover your data.")
+            # while True:
+            #     passwd = getpass("Enter your encryption password: ")  # This password can be different and not stored.
+            #     if passwd == getpass("Re-type your encryption password: "):
+            #         break
+            #     print("Passwords didn't match!")
+            #
+            # self.key = passwd  # To call the setter method
             self._logged_in = True  # Will be checked while encrypting and decrypting
             print(f"\nWelcome {u_name}.")
             return True
@@ -174,7 +175,8 @@ class PasswordClass:
                     return output_processed
 
                 except Exception as e:
-                    print("Password error!")
+                    printc("[bold red]Password error!\nYou need to create key again with correct password")
+                    time.sleep(1)
                     return
                 # return output
             else:

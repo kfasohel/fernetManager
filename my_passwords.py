@@ -14,9 +14,15 @@ console = Console()
 
 def main():
     printc("[green]Welcome to your own password manager.")
-    logged_check = choice_group_one()
-    if logged_check:
-        choice_group_two()
+    logged_in = choice_group_one()
+    if logged_in:
+        f_key = create_key()
+        if f_key:
+            choice_group_two()
+        else:
+            print("Key could not be created") # This is for debugging
+    else:
+        print("Log in not successful")
 
 
 # Add register function
@@ -55,6 +61,22 @@ def login():
     return False
 
 
+# Create Fernet key with stored salt and user encryption password
+def create_key():
+    printc("[yellow]Now you have to enter your encryption password which can be same as login password or "
+           "different\n[red]But you must preserve it, otherwise there is no way to recover your data.")
+    while True:
+        passwd = getpass("Enter your encryption password: ")  # This password can be different and not stored.
+        if passwd == getpass("Re-type your encryption password: "):
+            break
+        print("Passwords didn't match!")
+
+    pc.key = passwd  # To call the setter method
+    if pc.key:
+        return True
+    return False
+
+
 # A function with login, register and quit options
 def choice_group_one():
     while True:
@@ -89,7 +111,7 @@ def choice_group_one():
 def choice_group_two():
     while True:
         printc("[yellow]What do you want to do: ")
-        printc("\t[green](1) Add entry\n\t[blue](2) Find entry\n\t[cyan](3) Show All\n\t[magenta](4) Delete entry\n\t[dim red](d) Delete All\n\t[red](q) Quit")
+        printc("\t[green](1) Add entry\n\t[blue](2) Find entry\n\t[cyan](3) Show All\n\t[magenta](4) Delete entry\n\t[dim red](d) Delete All\n\t[dim red](k) Create key again\n\t[red](q) Quit")
         choice = console.input("[yellow]Enter choice: ")
 
         # Sort choice
@@ -109,6 +131,8 @@ def choice_group_two():
                 delete_data()
             case 'd':
                 delete_all()
+            case 'k':
+                create_key()
             case 'q':
                 pc.close_conn()
                 break
@@ -153,7 +177,7 @@ def show_all():
         display_data(site_data)
         time.sleep(2)
     else:
-        printc("[red]Something went wrong! You may try again")
+        printc("[red]You have to create the key again with correct password!")
 
 
 def display_data(data):

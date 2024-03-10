@@ -7,22 +7,21 @@ from rich.console import Console
 from rich.table import Table
 from getpass import getpass
 
-# Global variables
+# Global objects and variables
 pc = PasswordClass()
 console = Console()
+quit_prog = False
 
 
 def main():
     printc("[green]Welcome to your own password manager.")
-    logged_in = choice_group_one()
-    if logged_in:
-        f_key = create_key()
-        if f_key:
+    while not quit_prog:
+        choice_group_one()
+        if pc.logged_in:
             choice_group_two()
-        else:
-            print("Key could not be created") # This is for debugging
-    else:
-        print("Log in not successful")
+
+    pc.close_conn()
+    printc("\n[bold green]Have a good day.[/bold green] ☕\n")
 
 
 # Add register function
@@ -33,7 +32,7 @@ def register():
             password = getpass("Password: ")
             if password == getpass("Retype password: ") and password != "":
                 break
-            print("Passwords didn't match")
+            printc("[red]Passwords didn't match or empty")
         else:
             printc("[red]Username can not be empty")
     pass_hash = hashlib.sha256(password.encode()).hexdigest()
@@ -50,35 +49,23 @@ def login():
             password = getpass("Password: ")
             if password == getpass("Retype password: ") and password != "":
                 break
-            print("Passwords didn't match")
+            printc("[red]Passwords didn't match or empty")
         else:
             printc("[red]Username can not be empty")
     pass_hash = hashlib.sha256(password.encode()).hexdigest()
     checked = pc.check_user(username, pass_hash)
     if checked:
         if pc.set_user(username):
-            return True
-    return False
-
-
-# Create Fernet key with stored salt and user encryption password
-def create_key():
-    printc("[yellow]Now you have to enter your encryption password which can be same as login password or "
-           "different\n[red]But you must preserve it, otherwise there is no way to recover your data.")
-    while True:
-        passwd = getpass("Enter your encryption password: ")  # This password can be different and not stored.
-        if passwd == getpass("Re-type your encryption password: "):
-            break
-        print("Passwords didn't match!")
-
-    pc.key = passwd  # To call the setter method
-    if pc.key:
-        return True
+            pc.key = password
+            if pc.key:
+                pc.logged_in = True
+                return True
     return False
 
 
 # A function with login, register and quit options
 def choice_group_one():
+    global quit_prog
     while True:
         printc("[yellow]What do you want to do: ")
         printc("\t[green](1) Login\n\t[blue](2) Register\n\t[red](q) Quit")
@@ -90,7 +77,7 @@ def choice_group_one():
                 logged = login()
                 if logged:
                     printc("[magenta]You are logged in. 🍃\n")
-                    return True
+                    return
                 else:
                     printc("[red]Login credentials didn't match!")
             case '2':
@@ -100,29 +87,31 @@ def choice_group_one():
                 else:
                     printc("[red]Username taken.")
             case 'q':
-                pc.close_conn()
-                return False
+                quit_prog = True
+                return
             case _:
                 printc("[red]Invalid choice")
-                pass
+                break
 
 
 # A function with add, find passwords for sites
 def choice_group_two():
+    global quit_prog
     while True:
         printc("[yellow]What do you want to do: ")
-        printc("\t[green](1) Add entry\n\t[blue](2) Find entry\n\t[cyan](3) Show All\n\t[magenta](4) Delete entry\n\t[dim red](d) Delete All\n\t[dim red](k) Create key again\n\t[red](q) Quit")
+        printc(
+            "\t[green](1) Add entry\n\t[blue](2) Find entry\n\t[cyan](3) Show All\n\t[magenta](4) Delete entry\n\t[dim red](d) Delete All[/dim red]\n\t[cyan](x) Log out\n\t[red](q) Quit")
         choice = console.input("[yellow]Enter choice: ")
 
         # Sort choice
         match choice:
             case '1':
                 site_name, site_url, site_username, site_pass = get_data()
-                if pc.add_entry(site_name=site_name, site_url=site_url, site_username=site_username, site_pass=site_pass):
+                if pc.add_entry(site_name=site_name, site_url=site_url, site_username=site_username,
+                                site_pass=site_pass):
                     printc("[cyan]Data entry successful.")
                 else:
                     printc("[red]Something went wrong!")
-
             case '2':
                 find_data()
             case '3':
@@ -131,11 +120,12 @@ def choice_group_two():
                 delete_data()
             case 'd':
                 delete_all()
-            case 'k':
-                create_key()
+            case 'x':
+                pc.logged_in = False
+                return
             case 'q':
-                pc.close_conn()
-                break
+                quit_prog = True
+                return
             case _:
                 printc("[red]Invalid choice")
                 pass
@@ -146,11 +136,14 @@ def get_data():
     while True:
         site_name = input("Enter name of the Site/Website: ").strip()
         if site_name:
+            # TODO: site_name to be checked to avoid duplicate entry
             site_pass = getpass("Enter the site password: ")
             if site_name and site_pass == getpass("Retype your password: ") and site_pass != "":
                 break
-            printc("[red]Passwords didn't match or empty")
-        printc("[bold red]Site/Website name can not be empty!")
+            else:
+                printc("[red]Passwords didn't match or empty")
+        else:
+            printc("[bold red]Site/Website name can not be empty!")
 
     # Get optional data. Assign <empty> in case of no user input
     site_url = input("Enter the URL: ").strip() or "<empty>"
@@ -166,9 +159,13 @@ def find_data():
         site_data = pc.find_entry(site_to_find)
         if site_data:
             display_data(site_data)
-            time.sleep(2)
+            time.sleep(1)
+        else:
+            printc("[red]Site is not in the database")
+            time.sleep(1)
     else:
         printc("[bold red]Site name can not be empty")
+
 
 # Show all data of the logged-in user
 def show_all():
@@ -177,7 +174,8 @@ def show_all():
         display_data(site_data)
         time.sleep(2)
     else:
-        printc("[red]You have to create the key again with correct password!")
+        printc("[red]Nothing in the database!")
+        time.sleep(1)
 
 
 def display_data(data):
@@ -199,24 +197,36 @@ def delete_data():
     if site_to_delete:
         site_data = pc.find_entry(site_to_delete)
         if site_data:
-            if pc.delete_entry(site_to_delete):
-                time.sleep(1)
-                printc(f"[bold white] {site_to_delete} deleted successfully from your records. ")
+            if 'y' == console.input("[red]Are you sure? 'y' or 'n': ").lower():
+                if pc.delete_entry(site_to_delete):
+                    time.sleep(1)
+                    printc(f"[bold white] {site_to_delete} deleted successfully from your records. ")
+            else:
+                printc("[green]Data not deleted.")
+                time.sleep(0.5)
+                return
+        else:
+            printc("[red]The site is not in the database")
+            time.sleep(1)
     else:
         printc("[bold red]Site name can not be empty")
 
 
 def delete_all():
-    ans = input("This will delete all your records.\nType 'Y' or 'N'. Are you sure? ").upper()
+    if pc.find_entry():
+        ans = input("This will delete all your records.\nType 'Y' or 'N'. Are you sure? ").upper()
 
-    if ans == 'Y' and 'Y' == console.input("[bold red]Are you sure? 'Y' or 'N': ").upper():
-        if pc.delete_entry():
-            time.sleep(1)
-            printc("[red]All data deleted.")
+        if ans == 'Y' and 'Y' == console.input("[bold red]Are you sure? 'Y' or 'N': ").upper():
+            if pc.delete_entry():
+                time.sleep(1)
+                printc("[red]All data deleted.")
+            else:
+                print("Data could not be deleted. You may try again.")
         else:
-            print("Data could not be deleted. You may try again.")
+            printc("[bold green] Your data is safe. 💚")
     else:
-        printc("[bold green] Your data is safe. 💚")
+        printc("[red]Nothing in the database")
+        time.sleep(1)
 
 
 if __name__ == "__main__":

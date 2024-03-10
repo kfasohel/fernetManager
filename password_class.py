@@ -1,30 +1,26 @@
-import hashlib
 import sqlite3
 import base64
 import os
 import time
-import sys
-import re
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from getpass import getpass
 from rich import print as printc
 
 
 class PasswordClass:
 
     def __init__(self) -> None:
-        self._salt = os.urandom(16)  # To be changed according to logged-in user
-        self._key = None  # To be created according to logged-in user
-        self._userid = None  # To be set according to logged-in user
-        self._logged_in = False
+        self._salt = os.urandom(16)  # To be changed according to logged-in user, internal method only
+        self.key = None  # To be created according to logged-in user
+        self.userid = None  # To be set according to logged-in user
+        self.logged_in = False
 
         # Connect or create a new database
         self._dbname = "fernets.db"
-        self._conn = sqlite3.connect(self._dbname)  # create or connect to db
-        self._cur = self._conn.cursor()
+        self._conn = sqlite3.connect(self._dbname)  # create or connect to db, internal method only
+        self._cur = self._conn.cursor()  # Create a cursor object, internal method only
         self.create_tables(self)
 
     @property
@@ -41,15 +37,18 @@ class PasswordClass:
 
     @key.setter
     def key(self, u_password):
-        u_password_bytes = u_password.encode('utf-8')
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=self._salt,
-            iterations=480000,
-        )
-        self._key = Fernet(base64.urlsafe_b64encode(kdf.derive(u_password_bytes)))
-        print("Key created")
+        if u_password:
+            u_password_bytes = u_password.encode('utf-8')
+            kdf = PBKDF2HMAC(
+                algorithm=hashes.SHA256(),
+                length=32,
+                salt=self._salt,
+                iterations=480000,
+            )
+            self._key = Fernet(base64.urlsafe_b64encode(kdf.derive(u_password_bytes)))
+            print("Key created")
+        else:
+            printc("[yellow][+][/yellow] Key will be created with password from user")
 
     @property
     def userid(self):
@@ -58,6 +57,22 @@ class PasswordClass:
     @userid.setter
     def userid(self, user_id):
         self._userid = user_id
+
+    @property
+    def logged_in(self):
+        return self._logged_in
+
+    @logged_in.setter
+    def logged_in(self, value):
+        self._logged_in = value
+
+    @property
+    def dbname(self):
+        return self._dbname
+
+    @dbname.setter
+    def dbname(self, value):
+        printc("[bold red]Not allowed.")
 
     @staticmethod
     def create_tables(self):
@@ -85,10 +100,6 @@ class PasswordClass:
         """)
         self._conn.commit()
         printc("[green][+][/green] Database ready")
-
-    @property
-    def dbname(self):
-        return self._dbname
 
     # Close sqlite3 database connection
     def close_conn(self):
@@ -129,17 +140,8 @@ class PasswordClass:
             query = "SELECT salt FROM users WHERE id = ?"
             data_to_insert = [self._userid, ]
             self._salt = self._cur.execute(query, data_to_insert).fetchone()[0]
-            # printc("[yellow]Now you have to enter your encryption password which can be same as login password or "
-            #        "different\n[red]But you must preserve it, otherwise there is no way to recover your data.")
-            # while True:
-            #     passwd = getpass("Enter your encryption password: ")  # This password can be different and not stored.
-            #     if passwd == getpass("Re-type your encryption password: "):
-            #         break
-            #     print("Passwords didn't match!")
-            #
-            # self.key = passwd  # To call the setter method
             self._logged_in = True  # Will be checked while encrypting and decrypting
-            print(f"\nWelcome {u_name}.")
+            printc(f"\nWelcome [bold green]{u_name}[/bold green].")
             return True
         return False
 
@@ -155,11 +157,11 @@ class PasswordClass:
             return True
         return False
 
-    def find_entry(self, site_title = None):
+    def find_entry(self, site_title=None):
         if self._logged_in:
             if not site_title:
                 query = "SELECT site_name, site_url, site_username, site_pass_encrypted FROM passwords WHERE uid = ?"
-                data_to_put = [self.userid,]
+                data_to_put = [self.userid, ]
             else:
                 site_title = site_title.capitalize()
                 query = "SELECT site_name, site_url, site_username, site_pass_encrypted FROM passwords WHERE uid = ? AND site_name = ?"
@@ -175,20 +177,17 @@ class PasswordClass:
                     return output_processed
 
                 except Exception as e:
-                    printc("[bold red]Password error!\nYou need to create key again with correct password")
+                    printc("[bold red]Password error!")  # For debugging
                     time.sleep(1)
                     return
-                # return output
             else:
-                print("Site not found")
                 return
 
-
-    def delete_entry(self, site_title = None):
+    def delete_entry(self, site_title=None):
         if self._logged_in:
             if not site_title:
                 query = "DELETE FROM passwords WHERE uid = ?"
-                data_to_put = [self.userid,]
+                data_to_put = [self.userid, ]
             else:
                 site_title = site_title.capitalize()
                 query = "DELETE FROM passwords WHERE uid = ? AND site_name = ?"
@@ -197,44 +196,3 @@ class PasswordClass:
             self._conn.commit()
             return True
         return False
-
-
-# pc = PasswordClass()
-# username = input("Username: ").strip()
-# while True:
-#     password = getpass("Password: ")
-#     if password == getpass("Retype password: "):
-#         break
-#     print("Passwords didn't match")
-# pass_hash = hashlib.sha256(password.encode()).hexdigest()
-#
-# user_exists = pc.check_user(username, pass_hash)
-# if user_exists:
-#     print("User in db")
-# else:
-#     print("User not in db")
-
-# pc.add_user(username, pass_hash)
-# if pc.set_user(username):
-#     # getting entry
-#     site_name = input("Enter name of the Site/Website: ").strip()
-#     site_url = input("Enter the URL: ").strip()
-#     while True:
-#         site_pass = getpass("Enter the site password: ")
-#         if site_pass == getpass("Retype your password: "):
-#             break
-#         print("Passwords didn't match")
-#     if pc.add_entry(site_name, site_url, site_pass):
-#         print("Entry Added")
-
-# Finding entry
-#     site_name = input("Enter the Site/Website name: ")
-#     if site_name:
-#         pc.find_entry(site_name)
-#     else:
-#         print("Password was not correct!")
-# else:
-#     print("This user is not registered!")
-
-# Close the database connection
-# pc.close_conn()

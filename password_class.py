@@ -10,7 +10,9 @@ from rich import print as printc
 
 
 class PasswordClass:
+    """
 
+    """
     def __init__(self) -> None:
         self._salt = os.urandom(16)  # To be changed according to logged-in user, internal method only
         self.key = None  # To be created according to logged-in user
@@ -21,7 +23,7 @@ class PasswordClass:
         self._dbname = "fernets.db"
         self._conn = sqlite3.connect(self._dbname)  # create or connect to db, internal method only
         self._cur = self._conn.cursor()  # Create a cursor object, internal method only
-        self.create_tables(self)
+        self.create_tables(self) # Create specific tables for the database if not exists
 
     @property
     def salt(self):
@@ -75,7 +77,7 @@ class PasswordClass:
         printc("[bold red]Not allowed.")
 
     @staticmethod
-    def create_tables(self):
+    def create_tables(self) -> None:
         # Create users table
         self._cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
@@ -102,13 +104,13 @@ class PasswordClass:
         printc("[green][+][/green] Database ready")
 
     # Close sqlite3 database connection
-    def close_conn(self):
+    def close_conn(self) -> None:
         self._cur.close()
         self._conn.close()
         printc("[green][+][/green] Database connection termination successful")
 
     # Add user ? the user database should be handled by app.py
-    def add_user(self, u_name, p_hash):
+    def add_user(self, u_name, p_hash) -> bool:
         u_name = u_name.capitalize()
         query = "SELECT username FROM users WHERE username = ?"
         data_to_check = [u_name, ]
@@ -144,6 +146,15 @@ class PasswordClass:
             printc(f"\nWelcome [bold green]{u_name}[/bold green].")
             return True
         return False
+
+    # Check site-name in the database to avoid duplicate entry
+    def check_site(self, s_name):
+        supplied_data = [self.userid, s_name,]
+        s_name_found = self._cur.execute("SELECT site_name FROM passwords WHERE uid = ? AND site_name = ?", supplied_data).fetchall()
+        if s_name_found:
+            return True
+        return False
+
 
     # Add entry
     def add_entry(self, site_name, site_url, site_username, site_pass):

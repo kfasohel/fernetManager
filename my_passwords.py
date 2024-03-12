@@ -14,7 +14,7 @@ quit_prog = False
 
 
 def main():
-    printc("[green]Welcome to your own password manager.")
+    printc("\n[green]Welcome to your own password manager.")
     while not quit_prog:
         choice_group_one()
         if pc.logged_in:
@@ -67,9 +67,9 @@ def login():
 def choice_group_one():
     global quit_prog
     while True:
-        printc("[yellow]What do you want to do: ")
+        printc("\n[yellow]What do you want to do: ")
         printc("\t[green](1) Login\n\t[blue](2) Register\n\t[red](q) Quit")
-        choice = console.input("[yellow]Enter choice: ")
+        choice = console.input("[yellow]Enter choice: ").strip()
 
         # Sort choice
         match choice:
@@ -100,8 +100,8 @@ def choice_group_two():
     while True:
         printc("[yellow]What do you want to do: ")
         printc(
-            "\t[green](1) Add entry\n\t[blue](2) Find entry\n\t[cyan](3) Show All\n\t[magenta](4) Delete entry\n\t[dim red](d) Delete All[/dim red]\n\t[cyan](x) Log out\n\t[red](q) Quit")
-        choice = console.input("[yellow]Enter choice: ")
+            "\t[green](1) Add entry\n\t[blue](2) Find entry\n\t[cyan](3) Show All\n\t[red](4) Delete entry\n\t[dim red](d) Delete All[/dim red]\n\t[magenta](x) Log out\n\t[red](q) Quit")
+        choice = console.input("[yellow]Enter choice: ").strip()
 
         # Sort choice
         match choice:
@@ -134,14 +134,18 @@ def choice_group_two():
 # Get necessary data from the user and return it
 def get_data():
     while True:
-        site_name = input("Enter name of the Site/Website: ").strip()
+        site_name = input("Enter name of the Site/Website: ").strip().capitalize()
         if site_name:
             # TODO: site_name to be checked to avoid duplicate entry
-            site_pass = getpass("Enter the site password: ")
-            if site_name and site_pass == getpass("Retype your password: ") and site_pass != "":
-                break
+            if not pc.check_site(site_name):
+                site_pass = getpass("Enter the site password: ")
+                if site_name and site_pass == getpass("Retype your password: ") and site_pass != "":
+                    break
+                else:
+                    printc("[red]Passwords didn't match or empty")
             else:
-                printc("[red]Passwords didn't match or empty")
+                printc("[red] Site already exists in your database")
+                printc("[yellow]You may add numbers to the site-name to make a separate entry")
         else:
             printc("[bold red]Site/Website name can not be empty!")
 
@@ -154,7 +158,7 @@ def get_data():
 
 # Data to be retrieved using site name as search-term for the logged in user
 def find_data():
-    site_to_find = console.input("[cyan]Enter site name: ")
+    site_to_find = console.input("[cyan]Enter site name: ").strip().capitalize()
     if site_to_find:
         site_data = pc.find_entry(site_to_find)
         if site_data:
@@ -193,7 +197,7 @@ def display_data(data):
 
 
 def delete_data():
-    site_to_delete = console.input("[red]Enter site name: ")
+    site_to_delete = console.input("[red]Enter site name: ").strip().capitalize()
     if site_to_delete:
         site_data = pc.find_entry(site_to_delete)
         if site_data:
